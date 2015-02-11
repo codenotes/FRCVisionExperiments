@@ -119,7 +119,46 @@ void test(int state, void *)
 char *img = R"(C:\Program Files (x86)\National Instruments\LabVIEW 2014\examples\FRC\roboRIO\Vision\2015 Vision Example\Sample Images\image%d.jpg)";
 char *templateFile = R"(C:\Program Files (x86)\National Instruments\LabVIEW 2014\examples\FRC\roboRIO\Vision\2015 Vision Example\Sample Images\templates\2.png)";
 char temp[355];
+int thresholdSettings[6];
 
+
+void colorThresh2()
+{
+
+	Mat imgThresholded;
+
+	//inRange(src, Scalar(iLowH, iLowS, iLowV), Scalar(iHighH, iHighS, iHighV), imgThresholded); //Threshold the image
+	inRange(src, Scalar(thresholdSettings[0], thresholdSettings[1], thresholdSettings[2]), 
+		Scalar(thresholdSettings[3], thresholdSettings[4], thresholdSettings[4]), imgThresholded); //Threshold the image
+
+	//morphological opening (remove small objects from the foreground)
+	erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+	dilate(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+
+	////morphological closing (fill small holes in the foreground)
+	dilate(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+	erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+
+	imshow("Thresholded Image", imgThresholded); //show the thresholded image
+	// imshow("Original", imgOriginal); //show the original image
+
+
+
+}
+
+
+void setThresh(int iLowH, int iHighH, int iLowS, int iHighS, int iLowV, int iHighV)
+{
+
+	thresholdSettings[0] = iLowH;
+	thresholdSettings[1] = iHighH;
+	thresholdSettings[2] = iLowS;
+	thresholdSettings[3] = iHighS;
+	thresholdSettings[4] = iLowV;
+	thresholdSettings[5] = iHighV;
+
+
+}
 
 
 void cameraloop()
@@ -129,15 +168,92 @@ void cameraloop()
 	vector<Point2f> corners;
 	VideoCapture cap(0);
 
-	
-	
+	int i = 0;
+
 
 	while (cap.isOpened())
 	{
-		printf("grabbing\n");
+	
 		cap >> m;
 		//warpImage(m, 5, 50, 0, 1, 30, disp, warp, corners);
 		imshow("Cam", m);
+		int k = cvWaitKey(20);
+
+		switch (k)
+		{
+
+		case 97: // 'a'
+			src = m;
+			colorThresh2();
+
+			
+			for (auto val : thresholdSettings)
+			{
+
+				printf("%d\t", val);
+
+			}
+			printf("\n");
+
+
+			break;
+
+		case 27: //escape
+			cap.release();
+			destroyAllWindows();
+			exit(0);
+
+			break;
+
+
+		case 114: //reset 'r'
+			printf("reset\n");
+
+			i = 0;
+
+			for (auto val : {0, 172, 201, 255, 206, 241})
+			{
+
+				thresholdSettings[i++] = val;
+
+			}
+
+			//iLowH = 34 * 180 / 255.0;
+			//iHighH = 172 * 180 / 255.0;
+			//iLowS = 60 * 180 / 255.0;
+			//iHighS = 255 * 180 / 255.0;
+			//iLowV = 131;// 162 * 180 / 255.0;
+			//iHighV = 190;// 255 * 180 / 255.0; 
+
+			setTrackbarPos("LowH", "Control", thresholdSettings[0]);
+			setTrackbarPos("HighH", "Control", thresholdSettings[1]);
+			setTrackbarPos("LowS", "Control", thresholdSettings[2]);
+			setTrackbarPos("HighS", "Control", thresholdSettings[3]);
+			setTrackbarPos("LowV", "Control", thresholdSettings[4]);
+			setTrackbarPos("HighV", "Control", thresholdSettings[5]);
+
+
+				//int iLowH = 0;
+				//int iHighH = 179;
+				//int iLowS = 0;
+				//int iHighS = 255;
+				//int iLowV = 0;
+				//int iHighV = 255;
+
+
+			break;
+
+
+
+
+
+
+
+
+		}
+
+
+
 	}
 
 
@@ -266,15 +382,19 @@ int main(int argc, char** argv)
 
 
 	//Create trackbars in "Control" window
-	cvCreateTrackbar("LowH", "Control", &iLowH, 179); //Hue (0 - 179)
-	cvCreateTrackbar("HighH", "Control", &iHighH, 179);
-
-	cvCreateTrackbar("LowS", "Control", &iLowS, 255); //Saturation (0 - 255)
-	cvCreateTrackbar("HighS", "Control", &iHighS, 255);
-
-	cvCreateTrackbar("LowV", "Control", &iLowV, 255); //Value (0 - 255)
-	cvCreateTrackbar("HighV", "Control", &iHighV, 255);
-
+	//cvCreateTrackbar("LowH", "Control", &iLowH, 179); //Hue (0 - 179)
+	//cvCreateTrackbar("HighH", "Control", &iHighH, 179);
+	//cvCreateTrackbar("LowS", "Control", &iLowS, 255); //Saturation (0 - 255)
+	//cvCreateTrackbar("HighS", "Control", &iHighS, 255);
+	//cvCreateTrackbar("LowV", "Control", &iLowV, 255); //Value (0 - 255)
+	//cvCreateTrackbar("HighV", "Control", &iHighV, 255);
+	
+	cvCreateTrackbar("LowH", "Control", &thresholdSettings[0], 179); //Hue (0 - 179)
+	cvCreateTrackbar("HighH", "Control", &thresholdSettings[1], 179);
+	cvCreateTrackbar("LowS", "Control", &thresholdSettings[2], 255); //Saturation (0 - 255)
+	cvCreateTrackbar("HighS", "Control", &thresholdSettings[3], 255);
+	cvCreateTrackbar("LowV", "Control", &thresholdSettings[4], 255); //Value (0 - 255)
+	cvCreateTrackbar("HighV", "Control", &thresholdSettings[5], 255);
 
 
 	cvCreateTrackbar("X", "Control", &warpX, 360); //Value (0 - 255)
